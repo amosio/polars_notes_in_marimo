@@ -18,7 +18,7 @@ def _():
 
 @app.cell
 def _(pl):
-    csv_file = "/data/titanic.csv"
+    csv_file = "./data/titanic.csv"
     df = pl.read_csv("./data/titanic.csv")
     return csv_file, df
 
@@ -99,7 +99,7 @@ def _(df, pl):
 
 @app.cell
 def _(mo):
-    mo.md(r"""### Group by""")
+    mo.md(r"""### Grouping and aggregation """)
     return
 
 
@@ -164,7 +164,61 @@ def _(df):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Lazy mode""")
+    mo.md(
+        r"""
+        ## Lazy mode
+        * all previous examples works in eager mode
+        * read csv in lazy mode by replacing `read_csv` with `scan_csv`
+        * to see the optimized plan run
+          ```python
+          LazyFrame.explain(optimized=True)
+          ```
+        * to evaluate run
+          ```python
+          LazyFrame.collect()
+          ```
+        """
+    )
+    return
+
+
+@app.cell
+def _(csv_file, pl):
+    ldf =(
+        pl.scan_csv(csv_file)
+        .group_by("Survived","Pclass")
+        .agg(
+            pl.col("PassengerId").count().alias("counts")
+        )
+    )
+    print(ldf.explain(optimized=True))
+    ldf.collect()
+    return (ldf,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Streaming larger-than-memory datasets
+        * when streaming is enabled ploars process dataframe in chunks
+        * To enable streaming pass to `collect` argument `streaming = True`
+        """
+    )
+    return
+
+
+@app.cell
+def _(csv_file, pl):
+    (
+        pl.scan_csv(csv_file)
+        .filter(pl.col("Age") > 50)
+        .group_by(["Survived","Pclass"])
+        .agg(
+            pl.col("PassengerId").count().alias("counts")
+        )
+        .collect(engine="streaming")
+    )
     return
 
 
