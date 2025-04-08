@@ -1,7 +1,19 @@
 import marimo
 
 __generated_with = "0.12.4"
-app = marimo.App(width="medium")
+app = marimo.App(width="medium", app_title="Polars notes")
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        # Polars notes
+
+        Based on course created by Liam Brannigan: https://www.udemy.com/course/data-analysis-with-polars/
+        """
+    )
+    return
 
 
 @app.cell
@@ -25,7 +37,7 @@ def _(pl):
 
 @app.cell
 def _(df):
-    print(df.glimpse())
+    df.glimpse()
     return
 
 
@@ -40,6 +52,7 @@ def _(mo):
     mo.md(
         """
         ## Expression API
+
         * using expresion API instead of square brackets let polars do ``parallelisation`` and ``query optimisation``
         * in the Expression API we use `pl.col` to refer to a column
         """
@@ -99,7 +112,7 @@ def _(df, pl):
 
 @app.cell
 def _(mo):
-    mo.md(r"""### Grouping and aggregation """)
+    mo.md(r"""### Grouping and aggregation""")
     return
 
 
@@ -200,9 +213,127 @@ def _(csv_file, pl):
 def _(mo):
     mo.md(
         r"""
+        When polars opens csv in lazy mode it:
+
+        * opens the file 
+        * gets the column names as headers
+        * infers the type of each column from the first 100 rows
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        to check what types were inffered
+          ```python
+          ldf.schema
+          ```
+        `ldf.collect_schema()` returns types only for columns in optimised query plan
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        to create lazy frame from data:
+        ```python
+        pl.LazyFrame({"values":[0,1,2]})
+        ```
+
+        to change df into ldf:
+        ```python
+        ldf = df.lazy()
+        ```
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""**methods called on a `DataFrame` acts on the data. An method on a `LazyFrame` acts on the query plan**""")
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
         ## Streaming larger-than-memory datasets
         * when streaming is enabled ploars process dataframe in chunks
         * To enable streaming pass to `collect` argument `streaming = True`
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        Optimizations applied by Polars include:
+
+        - `projection pushdown` limit the number of columns read to those required
+        - `predicate pushdown` apply filter conditions as early as possible
+        - `combine predicates` combine multiple filter conditions
+        - `slice pushdown` limit rows processed when limited rows are required
+        - `common subplan elimination` run duplicated transformations on the same data once and then re-use
+        - `common subexpression elimination` duplicated expressions are cached and re-used
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Excercise 1.2.1
+        Create a `LazyFrame` by doing a scan of the Titanic CSV file
+
+        Check to see which of the following metadata you can get from a `LazyFrame`:
+
+        - number of rows
+        - column names
+        - schema
+
+        Create a lazy query where you scan the Titanic CSV file and then select the `Name` and `Age` columns.
+
+        Print out the optimised query plan for this query
+        """
+    )
+    return
+
+
+@app.cell
+def _(csv_file, df, pl):
+    exc_ldf = pl.scan_csv(csv_file)
+    # exc_ldf.shape return error
+    print(df.columns)
+    print(df.schema)
+
+    (
+        pl.scan_csv(csv_file)
+        .select("Name","Age")
+        .explain()
+    )
+    return (exc_ldf,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Streaming larger-than-memory datasets
+
+        * when streaming is enabled ploars process dataframe in chunks
+        * To enable streaming pass to `collect` argum
         """
     )
     return
