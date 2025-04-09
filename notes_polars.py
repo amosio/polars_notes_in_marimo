@@ -29,6 +29,12 @@ def _():
 
 
 @app.cell
+def _():
+    import numpy as np
+    return (np,)
+
+
+@app.cell
 def _(pl):
     csv_file = "./data/titanic.csv"
     df = pl.read_csv("./data/titanic.csv")
@@ -231,7 +237,7 @@ def _(mo):
           ```python
           ldf.schema
           ```
-        `ldf.collect_schema()` returns types only for columns in optimised query plan
+        `ldf.collect_schema()` does not process your data, it just runs through the optimised query plan
         """
     )
     return
@@ -290,6 +296,21 @@ def _(mo):
     return
 
 
+app._unparsable_cell(
+    r"""
+    Partial evaluation
+    ```python
+    (
+        df
+        .head(3)
+        .collect()
+    )
+    ```
+    """,
+    name="_"
+)
+
+
 @app.cell
 def _(mo):
     mo.md(
@@ -333,7 +354,8 @@ def _(mo):
         ## Streaming larger-than-memory datasets
 
         * when streaming is enabled ploars process dataframe in chunks
-        * To enable streaming pass to `collect` argum
+        * To enable streaming pass to `collect` argument `streaming=True`
+        * Streaming is not supported for all operations. However, many key operations such as `filter`, `groupby` and `join` support streaming. If streaming is not possible then Polars will run the query without streaming.
         """
     )
     return
@@ -351,6 +373,155 @@ def _(csv_file, pl):
         .collect(engine="streaming")
     )
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Limits of lazy mode
+
+        There are operations that cannot be done in lazy mode.
+        In this case it's recommended to stay in lazy mode as long as posible. Convert to eager data frame for problematic operation and then conver back to lazy dataframe
+        ```python
+        (
+            pl.scan_csv(csv_file)
+            .collect()
+            .pivot(index="Pclass",on="Sex",values="Age",aggregate_function="mean")
+            .lazy()
+        )
+        ```
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Exercise 1.3.1
+        Create a `LazyFrame` and covert it to eager mode
+
+        ```python
+        (
+            pl.scan_csv(csv_file)
+            .head()
+            .collect()
+            .lazy()
+            .head(3)
+        )
+        ```
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Data frame methods
+
+        * df.width
+        * df.height
+        * df.schema
+        * df.dtypes
+
+        Metod for comparing shemas
+
+        ```python
+        def compare_polars_schema(
+                df_schema:pl.Schema, 
+                target_schema: pl.Schema
+        ):
+        '''
+        Compare two pl.Schema and report on any differences
+        Args:
+            df_schema (OrderedDict): The schema of our DataFrame
+            target_schema (OrderedDict): The target schema of our DataFrame that we are comparing to
+    
+        Returns:
+            Dict containing comparison details, with keys indicating the type of difference
+        '''
+            # Check if they are the same
+            if df_schema == target_schema:
+                return {"match": True}
+    
+            # Otherwise do a detailed comparison
+            comparison_result = {
+                "match": False,
+                "differences": {}
+            }
+    
+            # Check keys
+            df_keys = set(df_schema.keys())
+            target_keys = set(target_schema.keys())
+    
+            # Check for missing or extra keys
+            missing_in_target_schema = df_keys - target_keys
+            missing_in_df_schema = target_keys - df_keys
+    
+            if missing_in_target_schema:
+                comparison_result["differences"]["keys_missing_in_target"] = list(missing_in_target_schema)
+    
+            if missing_in_df_schema:
+                comparison_result["differences"]["keys_missing_in_df"] = list(missing_in_df_schema)
+    
+            # Check common keys for dtype differences
+            common_keys = df_keys.intersection(target_keys)
+    
+            dtype_differences = {}
+            for key in common_keys:
+                if df_schema[key] != target_schema[key]:
+                    dtype_differences[key] = {
+                        "df_type": str(df_schema[key]),
+                        "target_type": str(target_schema[key])
+                    }
+    
+            if dtype_differences:
+                comparison_result["differences"]["dtype_mismatches"] = dtype_differences
+    
+            return comparison_result
+        ```
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r""" """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        polars use for cols apache arrow
+
+        ```python
+        df["Age"].to_arrow()
+        ```
+
+        A Polars `DataFrame` holds references to an Arrow Table which holds references to Arrow Arrays. We can think of a Polars `DataFrame` being a lightweight object that points to the lightweight Arrow Table which points to the heavyweight Arrow Arrays (heavyweight because they hold the actual data). 
+
+
+        """
+    )
+    return
+
+
+@app.cell
+def _(np, pl):
+    # @TODO
+    df_shape = (1_000_000,100)
+    df_polars = pl.DataFrame(
+        np.random.standard_normal(df_shape)
+    )
+    df_polars.head(3)
+    return df_polars, df_shape
 
 
 if __name__ == "__main__":
